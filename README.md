@@ -1,3 +1,9 @@
+# 运行项目
+```bash
+pnpm i
+pnpm dev:example
+```
+
 # Vue3 核心模块
 
 ## 1. 响应式系统 (reactivity)
@@ -288,4 +294,104 @@ export function trigger(target: object, key: unknown) {
             └─ 执行所有相关的 effect
                └─ 重新执行用户函数
 ```
+## TargetMap and DepMap
 
+让我用一个具体的例子来解释依赖图里存储的内容：
+
+````typescript
+// 创建一个响应式对象
+const state = reactive({
+  count: 0,
+  message: 'hello'
+})
+
+// 创建三个 effect
+effect(() => {
+  console.log('effect1:', state.count)  // 只依赖 count
+})
+
+effect(() => {
+  console.log('effect2:', state.message)  // 只依赖 message
+})
+
+effect(() => {
+  console.log('effect3:', state.count, state.message)  // 同时依赖 count 和 message
+})
+````
+
+此时依赖图的结构是这样的：
+
+````typescript
+// 1. targetMap (WeakMap)
+targetMap = {
+  // key: 原始对象
+  {count: 0, message: 'hello'} => {
+    // value: depsMap，存储这个对象所有属性的依赖
+    "count" => Set([ effect1, effect3 ]),
+    "message" => Set([ effect2, effect3 ])
+  }
+}
+
+// 2. 每个 effect 的结构
+effect1 = {
+  fn: () => console.log('effect1:', state.count),
+  deps: [ Set([ effect1, effect3 ]) ],  // 记录自己在哪些依赖集合中
+  active: true
+}
+
+effect2 = {
+  fn: () => console.log('effect2:', state.message),
+  deps: [ Set([ effect2, effect3 ]) ],
+  active: true
+}
+
+effect3 = {
+  fn: () => console.log('effect3:', state.count, state.message),
+  deps: [ 
+    Set([ effect1, effect3 ]),  // count 的依赖集合
+    Set([ effect2, effect3 ])   // message 的依赖集合
+  ],
+  active: true
+}
+````
+
+当我们修改属性时：
+
+````typescript
+// 修改 count
+state.count++
+// 1. 通过 targetMap 找到原始对象的 depsMap
+// 2. 通过 depsMap 找到 "count" 的依赖集合 Set([ effect1, effect3 ])
+// 3. 执行这个集合中的所有 effect
+
+// 修改 message
+state.message = 'hi'
+// 1. 找到 "message" 的依赖集合 Set([ effect2, effect3 ])
+// 2. 执行这些 effect
+````
+
+用图表示就是：
+````
+targetMap (WeakMap)
+└─ 原始对象 { count: 0, message: 'hello' }
+   └─ depsMap (Map)
+      ├─ "count" -> Set
+      │   ├─ effect1
+      │   └─ effect3
+      │
+      └─ "message" -> Set
+          ├─ effect2
+          └─ effect3
+
+每个 effect 包含：
+- fn: 用户传入的函数
+- deps: 这个 effect 被收集到的所有依赖集合
+- active: 是否处于激活状态
+````
+
+这样设计的好处：
+1. 可以精确找到需要更新的 effect
+2. 每个 effect 知道自己依赖了哪些属性
+3. 支持一个 effect 依赖多个属性
+4. 支持多个 effect 依赖同一个属性
+5. 当属性变化时，只更新相关的 effect，不会触发无关的更新
