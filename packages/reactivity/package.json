@@ -1,0 +1,19 @@
+{
+  "name": "@mini-vue3/reactivity",
+  "version": "1.0.0",
+  "main": "index.js",
+  "module": "dist/reactivity.esm-bundler.js",
+  "types": "dist/reactivity.d.ts",
+  "buildOptions": {
+    "name": "VueReactivity",
+    "formats": [
+      "esm-bundler",
+      "cjs",
+      "global"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^16.0.0",
+    "vitest": "^3.0.6"
+  }
+}

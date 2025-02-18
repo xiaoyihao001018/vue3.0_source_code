@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Vue3 测试</title>
+</head>
+<body>
+  <div id="app">
+    <h1>Mini Vue3 响应式系统测试</h1>
+    <div>Count: <span id="count">0</span></div>
+    <button id="btn">增加</button>
+  </div>
+
+  <script type="module">
+    // 导入响应式系统的 API
+    import { reactive, effect } from '../packages/reactivity/src/index.ts'
+
+    // 创建响应式状态
+    const state = reactive({
+      count: 0
+    })
+
+    // 创建副作用函数，当 count 改变时自动更新 DOM
+    effect(() => {
+      document.getElementById('count').textContent = state.count
+    })
+
+    // 点击按钮时增加计数
+    document.getElementById('btn').addEventListener('click', () => {
+      state.count++
+    })
+  </script>
+</body>
+</html> 

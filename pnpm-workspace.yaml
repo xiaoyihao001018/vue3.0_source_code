@@ -1,0 +1,4 @@
+# 定义工作区包的位置
+packages:
+  # 指定所有 packages 目录下的包都是工作区的一部分
+  - 'packages/*' 
